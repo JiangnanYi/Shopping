@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>购物车</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/ext.css"/>
+</head>
+<body>
+<div class="container">
+    <div class="row box" style="margin-bottom: 2rem; margin-top: 2rem;">
+        <div class="col-md-10 column">
+            <h1 style="color: red; margin: auto;">我的购物车</h1>
+        </div>
+        <div class="col-md-2 column" align="right">
+            <a href="index.html">返回首页</a>
+        </div>
+    </div>
+    <div class="row well well-sm">
+        <div class="col-md-2 column" align="left">
+            <input id="bigCbo" type="checkbox"/>&nbsp;全选
+        </div>
+        <div class="col-md-3 column" align="left">商品信息</div>
+        <div class="col-md-2 column" align="left">单价</div>
+        <div class="col-md-2 column" align="left">数量</div>
+        <div class="col-md-2 column" align="left">金额</div>
+        <div class="col-md-1 column" align="left">操作</div>
+    </div>
+    <!-- 购物车列表 -->
+    <div id="showAll"></div>
+    <!-- 结算 -->
+    <div class="row well well-sm">
+        <div class="col-md-12 column" align="right" style="margin-top: 1rem;">
+            <p style="color: red; font-size: large; font-weight: bold;" id="price_num">合计：¥ 0.00</p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 column" align="right">
+            <input type="button" class="btn btn-primary btn-lg" value="结算" id="btnCalculation"/>
+        </div>
+    </div>
+</div>
+</body>
+<script src="js/operation.js"></script>
+<script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/operation.js"></script>
+<script>
+    var app = function () {
+        $.ajaxSetup({
+            type: "get",
+            error: function (xhr, textStatus, errorThrown) {
+                alert(xhr + textStatus + errorThrown);
+            }
+        });
+        //类型查询
+        $.ajax({
+            url: "OptionServlet?action=Optionlist",
+            success: function (data) {
+                var html ="";
+                $.each(data,function (index,obj) {
+                    html += "<div class='row well well-sm box'>";
+                    html += "<div class='col-md-2 column' align='left'>";
+                    html += " <input id='"+obj.oId+"' class='cbo' type='checkbox'/>";
+                    html += "  <img alt='120x120' width='120rem' height='120rem' src='img/"+obj.pPhoto+"' />";
+                    html += " </div>";
+                    html += "     <div class='col-md-3 column' align='left'>";
+                    html += "     <p>";
+                    html += obj.pName;
+                    html += " </p>";
+                    html += " </div>";
+                    html += "<div class='col-md-2 column' align='left'>";
+                    html += "   <p style='font-size: large;'>¥ <span id='"+obj.oId+"_price'>"+obj.pPrice+"</span></p>";
+                    html += "</div>";
+                    html += " <div class='col-md-2 column' align='left'>";
+                    html += "    <input type='number' class='txtCount' oId='"+obj.oId+"' name='"+obj.oId+"' value='"+obj.buy_num+"' />";
+                    html += "   </div>";
+                    html += "  <div class='col-md-2 column' align='left'>";
+                    html += "   <p style='color: red; font-size: large;'>¥ <span id='"+obj.oId+"_num_price'>"+accMul(obj.pPrice,obj.buy_num)+"</span></p>";
+                    html += " </div>";
+                    html += " <div class='col-md-1 column' align='left'>";
+                    html += "    <input type='button' id='"+obj.oId+"' class='btn btn-danger delCart' name='del' value='删除'/>";
+                    html += "</div>";
+                    html += " </div>";
+                });
+                $("#showAll").html(html);
+            },
+        });
+    }
+    app();
+        //复选框点击事件，计算价格总计
+        $("#showAll").on("click",".cbo",function () { cboClick();});
+
+        //全选复选框点击事件
+        $("#bigCbo").on("click",function () {
+            var cbos = $("#showAll input[type=checkbox]");
+            for (var i = 0; i < cbos.length; i++) {
+                cbos[i].checked = this.checked;
+            }
+            cboClick();
+        });
+        //复选框点击事件
+        function cboClick(){
+            //获得商品id
+            var cbos = $("#showAll input[type=checkbox]:checked");
+            var str = "";
+            var str2 = "";
+            for (var i = 0; i < cbos.length; i++) {
+                str2 += str + $(cbos[i]).prop("id");
+                str = ",";
+            }
+            if(str2 == ""){  //没有选中
+                $("#price_num").text("合计：¥ 0.00");
+                return;
+            }
+
+            $.ajax({
+                type:"get",
+                data:{"action":"price_num","condition":str2},
+                url:"OptionServlet",
+                success:function (data) {
+                    var price_num =0.00 ;
+                    $.each(data,function (index,obj) {
+                        price_num = accAdd(price_num,accMul(obj.pPrice,obj.buy_num));
+                    });
+                    $("#price_num").text("合计：¥ "+price_num);
+                },
+                error:function (xhl) {
+                    console.log(xhl);
+                }
+            });
+
+            //所有复选框选中，则让全选选中
+            if($("#showAll input[type=checkbox]").length == $("#showAll input[type=checkbox]:checked").length){
+                $("#bigCbo").prop("checked",true);
+            }else{
+                $("#bigCbo").prop("checked",false);
+            }
+
+        }
+
+        //结算点击事件
+        $("#btnCalculation").on("click",function () {
+            //获得要进行结算的数据 oId
+            var cbos = $("#showAll input[type=checkbox]:checked");
+            var term = "";
+            var str = "";
+            for (var i = 0; i < cbos.length; i++) {
+                term += str + $(cbos[i]).prop("id");
+                str = ",";
+            }
+
+            if(term == ""){
+                alert("请选择要结算的商品");
+                return;
+            }
+           // console.log("准备结算的物品："+term);
+            $.ajax({
+                type:"get"	,
+                data:{"action":"storage","message":term},
+                url:"OrderServlet",
+                success:function (data) {
+                    location.href="order.html";
+                },
+                error:function (xhl) {
+                    console.log(xhl);
+                }
+            });
+
+
+        });
+
+        //数量值改变
+        $("#showAll").on("input propertychange",".txtCount",function () {
+            var buy_num = $(this).prop("value");
+            var oId = $(this).attr("oId");
+            if(buy_num <=0 || buy_num >999){
+                alert("数量不能小于等于0或大于999！");
+                $(this).prop("value",1);
+                return;
+            }
+
+            //修改当前数据的金额
+            var price = $("#"+oId+"_price").text();  //获得单价
+            var buy_num = $("input[name="+oId+"]").prop("value");
+            $("#"+oId+"_num_price").text(accMul(price,buy_num));
+
+            $.ajax({
+                type:"get",
+                data:{"oId":oId,"buy_num":buy_num},
+                url:"OptionServlet?action=updOption",
+                success:function (data) {
+                    if(data.msg === "0"){  //修改成功
+                        cboClick(); // 总价格渲染
+                    }else{
+                        alert("修改失败");
+                        $(this).prop("value",1);
+                        cboClick(); // 总价格渲染
+                    }
+
+                },error:function (xhl) {
+                    console.log(xhl);
+                }
+            });
+        });
+        //购物车的删除
+        $("#showAll").on("click",".delCart",function () {
+            var oId = $(this).prop("id");
+            $.ajax({
+                type:"get",
+                url:"OptionServlet?action=deleteOption",
+                data:{"oId":oId},
+                success:function (data) {
+                    alert(data.msg);
+                    cboClick();
+                    app();
+                },
+                error:function (xhl) {
+                    console.log(xhl);
+                }
+
+            });
+        });
+
+</script>
+</html>

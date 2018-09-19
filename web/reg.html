@@ -1,0 +1,62 @@
+<div id="regModal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document" style="width: 30%;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h3 class="modal-title">用户注册</h3>
+      </div>
+      <div class="modal-body">
+      	<div class="row" style="margin: 1rem;">
+      		<div class="col-md-12">
+      			<form class="form-horizontal" role="form">
+					<div class="form-group">
+						<input type="text" class="form-control" id="lUser" name="lUser" placeholder="账号"/>
+					</div>
+					<div class="form-group">
+						<input type="password" class="form-control" id="lPwd" placeholder="密码"/>
+					</div>
+					<div class="form-group">
+						<input type="text" class="form-control" id="lPhone" placeholder="手机"/>
+					</div>
+					<div class="form-group">
+						<input type="text" class="form-control" id="lMailbox" placeholder="邮箱"/>
+					</div>
+				</form>
+      		</div>
+      	</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" id="btnremt">关闭</button>
+        <button type="button" class="btn btn-primary" id="btnselect">注册</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+<script src="js/jquery-3.3.1.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/operation.js"></script>
+<script>
+    $.ajaxSetup({
+        type:"get",
+        error:function(xhr,textStatus,errorThrown){
+            alert(xhr+textStatus+errorThrown);
+        }
+    });
+    $("#btnselect").click(function(){
+        $.ajax({
+            url:"LoginsServlet?action=add",
+            data:{lUser:$("#lUser").val(),lPwd:$("#lPwd").val(),lPhone:$("#lPhone").val(),lMailbox:$("#lMailbox").val()},
+            success:function(data){
+                var lUser = $("#lUser").val();
+                $("#luser").text(lUser);
+                alert(data.msg);
+                $("#lUser").val("");
+                $("#lPwd").val("");
+                $("#lPhone").val("");
+                $("#lMailbox").val("");
+            },
+        })
+        $("#btnremt").trigger("click");
+    });
+</script>
+

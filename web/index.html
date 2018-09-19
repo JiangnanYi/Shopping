@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>挖宝网</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/ext.css"/>
+</head>
+<body>
+<div class="container">
+    <div class="row box" style="margin-top: 2rem; margin-bottom: 2rem;">
+        <div class="col-md-3 column">
+            <!-- 修改bootstrap中h1的margin-->
+            <h1 style="color: red; margin: auto;">挖宝网</h1>
+        </div>
+        <div class="col-md-8 column">
+            <form role="form" class="form-inline">
+                <div class="form-group">
+                    <input type="text" size="60" class="form-control" id="pName" placeholder="搜一下"/>
+                    <input type="button" class="btn btn-primary" value="搜索" id="btnsel"/>
+                </div>
+            </form>
+        </div>
+        <!--用户名显示-->
+        <div class="col-md-1" align="right">
+            <span id="luser">请登录</span>
+        </div>
+        <div class="col-md-2 column" align="right">
+            <a id="carthref" href="cart.html"><span class="badge pull-right" id="CountMessage">0</span>我的购物车</a>
+        </div>
+        <div class="col-md-2 column" align="right" id="logname">
+            <a href="#" id="loginhref">登陆</a>/<a href="#" id="reghref">注册</a>
+        </div>
+    </div>
+    <!-- 商品列表 -->
+    <div class="row">
+        <div class="col-md-2 column">
+            <ul class="nav navcolor nav-pills nav-stacked" id="nav">
+                <li class="active">
+                    <a href="#">分类</a>
+                </li>
+            </ul>
+        </div>
+        <div class="col-md-10 column">
+            <div class="row" id="bodyes"></div>
+        </div>
+    </div>
+    <!-- 模态框 -->
+    <div id="modal"></div>
+</div>
+</body>
+<script src="js/jquery-3.3.1.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/operation.js"></script>
+<script>
+    $(function () {
+        $("#loginhref").on("click", function () {
+            $("#modal").load("login.html", function () {
+                $('#loginModal').modal('show');
+            });
+        });
+        $("#reghref").on("click", function () {
+            $("#modal").load("reg.html", function () {
+                $('#regModal').modal('show');
+            });
+        });
+    });
+
+    var app = function () {
+        $.ajaxSetup({
+            type: "get",
+        });
+        //类型查询
+        $.ajax({
+            url: "PtypeServlet?action=lists",
+            success: function (data) {
+                $.each(data, function (index, obj) {
+
+                    $("#nav").append(
+                        "<li class='nav'>" +
+                        "<a href='#' class='tSelect' tId=" + obj.tId + " >" + obj.tName + "</a>" +
+                        "</li>");
+                });
+            },
+        });
+        //商品查询
+        $.ajax({
+            url: "ProductServlet?action=list",
+            success: function (data) {
+                $.each(data, function (index, obj) {
+                    $("#bodyes").append(
+                        $("<div class='col-md-4'>" +
+                            "<div class='thumbnail'>" +
+                            "<img alt='300x300' src='/img/" + obj.pPhoto + "' />" +
+                            " <div class='caption'>" +
+                            "<h3 style='color: red; font-weight: bold;' class='pPrice'>¥ " + obj.pPrice + "</h3>" +
+                            "<p>" + obj.pName + "</p>" +
+                            "<p>" +
+                            "<a class='btn btn-primary addcart' href='#' pId='" + obj.pId + "'>加入购物车</a>" +
+                            "</p>" +
+                            "</div>" +
+                            " </div>" +
+                            " </div>"))
+                });
+            },
+        });
+        //用户名查询
+        $.ajax({
+            url: "LoginsServlet?action=select",
+            success: function (data) {
+                if(data.msg != 1) {
+                    $("#luser").text(data.msg);
+                }
+            },
+        });
+        //判断是否有登录
+        $("#bodyes").on("click", ".btn", function () {
+            $.ajax({
+                url: "LoginsServlet?action=gwc",
+                success: function (data) {
+                    console.log(data.code);
+                    if (data.code === 1) {
+                        $("#loginhref").click();
+                    }
+                },
+            });
+
+        });
+        //添加购物车
+        $("#bodyes").on("click", ".btn", function () {
+            var pId = $(this).attr("pId");
+            $.ajax({
+                url: "OptionServlet?action=addOption",
+                data: {pId: pId, num: 1,},
+                success: function (data) {
+                    alert(data.msg);
+                    location.href = "cart.html";
+                },
+            })
+        });
+    };
+
+
+    //获得购物车的待购买数量
+    function ShoppingCart_count() {
+        $.ajax({
+            type: "get",
+            url: "OptionServlet?action=getNum",
+            success: function (data) {
+                $("#CountMessage").text(data.num);
+            }
+            , error: function (xhl) {
+                console.log(xhl);
+            }
+        });
+    }
+
+    //根据类型搜索
+    var app2 = function () {
+        $("#nav").on("click", ".tSelect", function () {
+            var tId = $(this).attr("tId");
+            $.ajax({
+                url: "ProductServlet?action=tlist",
+                data: {tId: tId},
+                success: function (data) {
+                    $("#bodyes").html("");
+                    $.each(data, function (index, obj) {
+                        $("#bodyes").append(
+                            $("<div class='col-md-4'>" +
+                                "<div class='thumbnail'>" +
+                                "<img alt='300x300' src='/img/" + obj.pPhoto + "' />" +
+                                " <div class='caption'>" +
+                                "<h3 style='color: red; font-weight: bold;'>¥ " + obj.pPrice + "</h3>" +
+                                "<p>" + obj.pName + "</p>" +
+                                "<p>" +
+                                "<a class='btn btn-primary addcart' href='#'  pId='" + obj.pId + "'>加入购物车</a>" +
+                                "</p>" +
+                                "</div>" +
+                                " </div>" +
+                                " </div>"))
+                    });
+                },
+            })
+        });
+    }
+    //根据名字查找
+    var app3 = function () {
+        $("#btnsel").on("click", function () {
+            var pName = $("#pName").val();
+            $.ajax({
+                url: "ProductServlet?action=nlist",
+                data: {pName: pName},
+                success: function (data) {
+                    $("#bodyes").html("");
+                    $.each(data, function (index, obj) {
+                        $("#bodyes").append(
+                            $("<div class='col-md-4'>" +
+                                "<div class='thumbnail'>" +
+                                "<img alt='300x300' src='/img/" + obj.pPhoto + "' />" +
+                                " <div class='caption'>" +
+                                "<h3 style='color: red; font-weight: bold;'>¥ " + obj.pPrice + "</h3>" +
+                                "<p>" + obj.pName + "</p>" +
+                                "<p>" +
+                                "<a class='btn btn-primary addcart' href='#'  pId='" + obj.pId + "'>加入购物车</a>" +
+                                "</p>" +
+                                "</div>" +
+                                " </div>" +
+                                " </div>"))
+                    });
+                },
+            })
+        });
+    }
+    $(function () {
+        app();
+        app2();
+        app3();
+        ShoppingCart_count();
+    });
+</script>
+</html>

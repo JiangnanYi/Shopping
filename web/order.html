@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title>确认订单</title>
+		<link rel="stylesheet" href="css/bootstrap.min.css" />
+		<link rel="stylesheet" href="css/ext.css" />
+	</head>
+
+	<body>
+		<div class="container">
+			<div class="row box" style="margin-bottom: 2rem; margin-top: 2rem;">
+				<div class="col-md-10 column">
+					<h1 style="color: red; margin: auto;">确认订单</h1>
+				</div>
+				<div class="col-md-2 column" align="right">
+					<a href="index.html">返回首页</a>
+				</div>
+			</div>
+			<!-- 地址信息-->
+			<div class="row" style="margin-bottom: 2rem;">
+				<div class="col-md-12 column">
+					<ul class="nav navcolor nav-pills nav-stacked" id="ulAddress">
+						<li class="active" style="font-size: large;">
+							<a href="#">配送地址</a>
+						</li>
+						<!--<li>-->
+							<!--<input type="radio" name="address"/>&nbsp; 江西省赣州市什么路153号(张三 收) 15818876898-->
+						<!--</li>-->
+						<!--<li>-->
+							<!--<input type="radio" name="address"/>&nbsp; 广东省广州市天河区什么路121号(李四 收) 18777890986 -->
+						<!--</li>-->
+						<!--<li>-->
+							<!--<input type="radio" name="address"/>&nbsp; 广东省珠海市香洲区什么路101号(王五 收) 13043709878-->
+						<!--</li>-->
+						<li>
+							<input type="button" id="newaddr" class="btn btn-info btn-sm" value="使用新地址"/>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<!-- 订单信息 -->
+			<div class="row" style="margin-bottom: 2rem;">
+				<div class="col-md-12 column">
+					<ul class="nav navcolor nav-pills nav-stacked">
+						<li class="active" style="font-size: large;">
+							<a href="#">订单信息</a>
+						</li>
+						<li>
+							<div class="row">
+								<div class="col-md-1 column" align="left"></div>
+								<div class="col-md-3 column" align="left">商品信息</div>
+								<div class="col-md-3 column" align="left">单价</div>
+								<div class="col-md-2 column" align="left">数量</div>
+								<div class="col-md-3 column" align="left">金额</div>
+							</div>
+						</li>
+						<div id="divOrder"></div>
+					</ul>
+				</div>
+			</div>
+			<!-- 结算 -->
+			<div class="row">
+				<div class="col-md-12 column" align="right" style="margin-top: 1rem;">
+					<p style="color: red; font-size: large; font-weight: bold;">实付款：¥ <span id="num_price">0.00</span></p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-12 column" align="right">
+					<input type="button" id="suborder" class="btn btn-primary btn-lg" value="提交订单" />
+				</div>
+			</div>
+		</div>
+		<!-- 模式对话框 -->
+		<div id="addrModal"></div>
+	</body>
+	<script src="js/jquery-3.3.1.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="js/operation.js"></script>
+	<script>
+
+        $(function(){
+            $("#newaddr").on("click",function(){
+                $("#addrModal").load("newaddr.html",function(){
+                    $("#newAddrModal").modal('show');
+                    //注册事件
+                    $("#btn_add_address").on("click",function () {
+                        var sName = $("#receiveUser").val();
+                        var sPhone = $("#receiveTell").val();
+                        var sLocation = $("#receiveAddr").val();
+                        $.ajax({
+                            type:"get",
+                            data:{"action":"add","sName":sName,"sPhone":sPhone,"sLocation":sLocation},
+                            url:"sitesServlet",
+                            success:function (data) {
+                                alert("你已成功添加地址");
+                                rendering_address(); //重新渲染地址
+                                $("#newAddrModal").modal('hide');
+                            },
+                            error:function (xhl) {
+                                console.log(xhl);
+                            }
+                        });
+                    });
+                });
+            });
+        });
+
+        //地址显示
+        function rendering_address(){
+            $.ajax({
+                type:"get",
+                url:"sitesServlet?action=liastAll",
+                success:function (data) {
+                    $("#ulAddress li[name=uzi]").remove();
+                    var html ="";
+                    $.each(data,function (index,obj) {
+                        html+="<li name='uzi'>";
+                        html+="<input name='cboAdr' id='"+obj.sId+"' type='radio'/>&nbsp;"+obj.sLocation+"("+obj.sName+"  收)"+obj.sPhone;
+                        html+="</li>";
+                    });
+                    $("#ulAddress").append(html);
+
+                    //默认选中第一个当选按钮
+                    var rads = $("input[type=radio]");
+                    rads[0].checked = true;
+
+                },
+                error:function (xhl) {
+                    console.log(xhl);
+                }
+            });
+        }
+
+
+
+        //总价格计算
+        function count_Price(){
+            //获得购物车id
+            var lis = $("#divOrder li");
+            var term = "";
+            var str = "";
+            for (var i = 0; i < lis.length; i++) {
+                term += str + $(lis[i]).prop("id");
+                str = ",";
+            }
+            console.log("此页面商品所在购物车oId："+term);
+
+            $.ajax({
+                type:"get",
+                data:{"action":"price_num","condition":term},
+                url:"OptionServlet",
+                success:function (data) {
+                    var price_num =0.00 ;
+                    $.each(data,function (index,obj) {
+                        price_num = accAdd(price_num,accMul(obj.pPrice,obj.buy_num));
+                    });
+                    $("#num_price").text(price_num);
+                },
+                error:function (xhl) {
+                    console.log(xhl);
+                }
+            });
+        }
+        //渲染订单信息
+        function rendering_order(){
+            $.ajax({
+                type:"get",
+                url:"OrderServlet?action=order",
+                success:function (data) {  //待结算的订单渲染
+                    //   int c_id, String p_name, int c_count, BigDecimal p_price, String p_photo
+                    var html ="";
+                    $.each(data,function (index,obj) {
+                        html += "<li id='"+obj.oId+"'>";
+                        html += "<div class='row box'>";
+                        html += "   <div class='col-md-1 column' align='left'>";
+                        html += "   <img alt='60x60' style='margin: 1rem;' width='60rem' height='60rem' src='img/"+obj.pPhoto+"' />";
+                        html += "   </div>";
+                        html += "   <div class='col-md-3 column' align='left'>";
+                        html += "   <p>";
+                        html += obj.pName;
+                        html += " </p></div>";
+                        html += "<div class='col-md-3 column' align='left'>";
+                        html += "  <p style='font-size: large;'>¥   "+obj.pPrice+"</p>   " ;
+                        html +=	"  </div><div class='col-md-2 column' align='left'>";
+                        html += "   <p style='font-size: large;'>"+obj.buy_num+"</p>";
+                        html += "   </div>";
+                        html += "   <div class='col-md-3 column' align='left'>";
+                        html += "    <p style='color: red; font-size: large;'>¥ "+(obj.pPrice*obj.buy_num)+"</p>";
+                        html += " </div>";
+                        html += " </div>";
+                        html += " </li>";
+                    });
+                    $("#divOrder").html(html);
+                    //总价计算
+                  count_Price();
+
+                },
+                error:function (xhl) {
+                    console.log(xhl);
+                }
+            });
+        }
+        $(function() {
+            rendering_order();
+            rendering_address();
+        });
+		$(function(){
+			$("#suborder").on("click",function(){
+                    //alert("在数据生成订单记录，并更新相应的购物项关联此订单\n，并修改购物项记录的状态为已下单");
+					//将生成的订单加入到数据库中，并将状态改为已下单
+                    var address = $("input[type=radio]:checked").prop("id");
+                    if(address =="" || address == undefined){
+                        alert("请选择收货地址");
+                        return;
+                    }
+                    console.log("地址a_id:"+address);
+                    $.ajax({
+                        type:"get",
+                        data:{"sId":address},
+                        url:"OrderServlet?action=add",
+                        success:function (data) {
+                            alert(data.msg);
+                            //网页跳转
+                            window.location.href="index.html";
+                        },
+                        error:function (xhl) {
+                            console.log(xhl);
+                        }
+                    });
+                })
+		});
+	</script>
+</html>
